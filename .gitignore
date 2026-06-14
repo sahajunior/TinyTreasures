@@ -1,0 +1,84 @@
+# Secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencies and build output
+**/node_modules/
+**/dist/
+**/coverage/
+*.tsbuildinfo
+
+# AI assistants, agents, prompts, memory, and generated evidence
+.omx/
+.codex/
+.claude/
+.agents/
+.cursor/
+.continue/
+.aider/
+.aider.*
+.windsurf/
+.cline/
+.roo/
+.gemini/
+.copilot/
+.chatgpt/
+.ai/
+.llm/
+.prompts/
+ai-context/
+ai-memory/
+agent-memory/
+artifacts/
+sessions/
+traces/
+
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+COPILOT.md
+.cursorrules
+.cursorignore
+.aiderignore
+prompt.md
+prompts.md
+memory.md
+MEMORY.md
+chat-history.*
+conversation.*
+session-*.json
+trace-*.json
+
+# Current private planning/design/handoff documents
+/PLAN.md
+/DESIGN.md
+/PHASE8_DEPLOYMENT.md
+/apps/client/README.md
+
+# Deployment provider state
+.vercel/
+.railway/
+
+# IDE/editor state
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# Logs, caches, and OS files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+.cache/
+.parcel-cache/
+.vite/
+.turbo/
+.nyc_output/
+.DS_Store
+Thumbs.db
+.DS_Store
