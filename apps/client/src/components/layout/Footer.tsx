@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="footer-rule" />
       <Link className="footer-brand" to="/">TinyTreasures</Link>
       <p>Curated collectibles from independent sellers</p>
-      <span>Est. 2024</span>
+      <span>Est. 2025</span>
     </footer>
   )
 }

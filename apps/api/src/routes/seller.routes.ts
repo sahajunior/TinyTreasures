@@ -3,7 +3,7 @@ import auth from "../middleware/auth";
 import requireRole from "../middleware/requireRole";
 import * as productController from "../controllers/product.controller";
 import * as sellerController from "../controllers/seller.controller";
-import { uploadProductImages } from "../middleware/upload";
+import { uploadProductImage, uploadProductImages } from "../middleware/upload";
 
 const router = Router();
 
@@ -24,6 +24,16 @@ router.post(
   "/products/:id/images",
   uploadProductImages,
   productController.uploadImages
+);
+router.patch("/products/:id/images/order", productController.reorderImages);
+router.put(
+  "/products/:id/images/:imageIndex",
+  uploadProductImage,
+  productController.replaceImage
+);
+router.delete(
+  "/products/:id/images/:imageIndex",
+  productController.deleteImage
 );
 
 export default router;

@@ -96,6 +96,52 @@ const uploadImage = (file: Express.Multer.File): Promise<string> =>
     stream.end(file.buffer);
   });
 
+const getCloudinaryPublicId = (imageUrl: string): string | null => {
+  try {
+    const url = new URL(imageUrl);
+    if (url.hostname !== "res.cloudinary.com") return null;
+
+    const segments = url.pathname.split("/").filter(Boolean);
+    const uploadIndex = segments.indexOf("upload");
+    if (uploadIndex === -1) return null;
+
+    const versionIndex = segments.findIndex(
+      (segment, index) => index > uploadIndex && /^v\d+$/.test(segment)
+    );
+    const publicIdSegments = segments.slice(
+      versionIndex === -1 ? uploadIndex + 1 : versionIndex + 1
+    );
+    if (publicIdSegments.length === 0) return null;
+
+    const finalSegment = publicIdSegments[publicIdSegments.length - 1];
+    publicIdSegments[publicIdSegments.length - 1] = finalSegment.replace(
+      /\.[^.]+$/,
+      ""
+    );
+    return decodeURIComponent(publicIdSegments.join("/"));
+  } catch {
+    return null;
+  }
+};
+
+const destroyImage = async (imageUrl: string): Promise<void> => {
+  const publicId = getCloudinaryPublicId(imageUrl);
+  if (!publicId || !isCloudinaryConfigured) return;
+  try {
+    await cloudinary.uploader.destroy(publicId, {
+      resource_type: "image",
+      invalidate: true,
+    });
+  } catch (error) {
+    console.error("Cloudinary image cleanup failed:", error);
+  }
+};
+
+const invalidateProductCache = async (productId: string): Promise<void> => {
+  await cacheInvalidate("products:*");
+  await cacheInvalidate(`product:${productId}`);
+};
+
 export const getProducts = async (query: ProductQuery): Promise<PaginatedResult> => {
   const page = query.page || 1;
   const limit = query.limit || 12;
@@ -241,14 +287,91 @@ export const addProductImages = async (
   }
 
   const product = await getSellerProduct(productId, sellerId);
-  if (product.images.length + files.length > 4) {
-    throw new ApiError(400, "A listing can have at most 4 images");
+  if (product.images.length + files.length > 7) {
+    throw new ApiError(
+      400,
+      "A listing can have 1 cover image and up to 6 additional images"
+    );
   }
 
   const urls = await Promise.all(files.map(uploadImage));
   product.images.push(...urls);
   await product.save();
-  await cacheInvalidate("products:*");
-  await cacheInvalidate(`product:${productId}`);
+  await invalidateProductCache(productId);
+  return product;
+};
+
+export const replaceProductImage = async (
+  productId: string,
+  sellerId: string,
+  imageIndex: number,
+  file?: Express.Multer.File
+): Promise<IProduct> => {
+  if (!isCloudinaryConfigured) {
+    throw new ApiError(503, "Image uploads are not configured");
+  }
+  if (!file) throw new ApiError(400, "Select an image");
+
+  const product = await getSellerProduct(productId, sellerId);
+  if (!Number.isInteger(imageIndex) || imageIndex < 0 || imageIndex >= product.images.length) {
+    throw new ApiError(404, "Image not found");
+  }
+
+  const oldImageUrl = product.images[imageIndex];
+  const newImageUrl = await uploadImage(file);
+  product.images[imageIndex] = newImageUrl;
+
+  try {
+    await product.save();
+  } catch (error) {
+    await destroyImage(newImageUrl);
+    throw error;
+  }
+
+  await destroyImage(oldImageUrl);
+  await invalidateProductCache(productId);
+  return product;
+};
+
+export const deleteProductImage = async (
+  productId: string,
+  sellerId: string,
+  imageIndex: number
+): Promise<IProduct> => {
+  const product = await getSellerProduct(productId, sellerId);
+  if (!Number.isInteger(imageIndex) || imageIndex < 0 || imageIndex >= product.images.length) {
+    throw new ApiError(404, "Image not found");
+  }
+
+  const [removedImageUrl] = product.images.splice(imageIndex, 1);
+  await product.save();
+  await destroyImage(removedImageUrl);
+  await invalidateProductCache(productId);
+  return product;
+};
+
+export const reorderProductImages = async (
+  productId: string,
+  sellerId: string,
+  images: unknown
+): Promise<IProduct> => {
+  const product = await getSellerProduct(productId, sellerId);
+  if (
+    !Array.isArray(images) ||
+    images.some((image) => typeof image !== "string") ||
+    images.length !== product.images.length
+  ) {
+    throw new ApiError(400, "Images must contain every current image exactly once");
+  }
+
+  const current = [...product.images].sort();
+  const requested = [...images].sort();
+  if (current.some((image, index) => image !== requested[index])) {
+    throw new ApiError(400, "Images must contain every current image exactly once");
+  }
+
+  product.images = images;
+  await product.save();
+  await invalidateProductCache(productId);
   return product;
 };

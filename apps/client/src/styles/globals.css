@@ -893,20 +893,25 @@ textarea {
 }
 
 .product-filters fieldset {
-  display: grid;
-  gap: 12px;
   margin: 0;
-  padding: 24px 0;
+  padding: 0 0 24px;
   border: 0;
   border-bottom: 1px solid var(--tt-border);
 }
 
 .product-filters legend {
-  margin-bottom: 14px;
+  width: 100%;
+  margin-bottom: 20px;
+  padding-top: 24px;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 1.5px;
   text-transform: uppercase;
+}
+
+.filter-options {
+  display: grid;
+  gap: 12px;
 }
 
 .radio-row {
@@ -1123,6 +1128,9 @@ textarea {
 }
 
 .quantity-control button {
+  display: grid;
+  padding: 0;
+  place-items: center;
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -1137,7 +1145,9 @@ textarea {
 }
 
 .quantity-control svg {
+  display: block;
   width: 14px;
+  height: 14px;
 }
 
 .quantity-control span {
@@ -2562,13 +2572,87 @@ textarea {
   position: relative;
 }
 
+.photo-preview-item {
+  position: relative;
+  min-width: 0;
+}
+
+.photo-preview-item > img,
+.photo-preview-item > .product-art {
+  width: 100%;
+  height: 120px;
+  min-height: 120px;
+  object-fit: cover;
+}
+
+.photo-actions {
+  position: absolute;
+  z-index: 3;
+  right: 5px;
+  bottom: 5px;
+  left: 5px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.photo-actions button,
+.photo-actions label {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--tt-ink);
+  background: var(--tt-warm-white);
+  color: var(--tt-ink);
+  cursor: pointer;
+}
+
+.photo-actions button:hover,
+.photo-actions label:hover {
+  background: var(--tt-ink);
+  color: var(--tt-warm-white);
+}
+
+.photo-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.photo-actions svg {
+  width: 12px;
+  height: 12px;
+}
+
+.photo-actions .photo-delete:hover {
+  border-color: var(--tt-rust);
+  background: var(--tt-rust);
+}
+
+.cover-photo-label {
+  position: absolute;
+  z-index: 2;
+  top: 6px;
+  left: 6px;
+  padding: 4px 7px;
+  border: 1px solid var(--tt-ink);
+  background: var(--tt-warm-white);
+  color: var(--tt-ink);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
 .image-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.image-preview button {
+.image-preview > button {
   position: absolute;
   top: 5px;
   right: 5px;
@@ -2705,14 +2789,14 @@ textarea {
   text-transform: uppercase;
 }
 
-.status-pending {
+.item-status-pending {
   border-color: #854f0b;
   background: #faeeda;
   color: #854f0b;
 }
 
-.status-shipped,
-.status-delivered {
+.item-status-shipped,
+.item-status-delivered {
   border-color: #3b6d11;
   background: #eaf3de;
   color: #3b6d11;

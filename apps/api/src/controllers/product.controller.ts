@@ -138,3 +138,55 @@ export const uploadImages = async (
     next(err);
   }
 };
+
+export const replaceImage = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const product = await productService.replaceProductImage(
+      req.params.id as string,
+      req.user!.userId,
+      Number(req.params.imageIndex),
+      req.file
+    );
+    res.json({ success: true, data: product });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteImage = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const product = await productService.deleteProductImage(
+      req.params.id as string,
+      req.user!.userId,
+      Number(req.params.imageIndex)
+    );
+    res.json({ success: true, data: product });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const reorderImages = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const product = await productService.reorderProductImages(
+      req.params.id as string,
+      req.user!.userId,
+      req.body.images
+    );
+    res.json({ success: true, data: product });
+  } catch (err) {
+    next(err);
+  }
+};

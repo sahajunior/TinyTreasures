@@ -80,7 +80,7 @@ export default function SellerOrders() {
                   </div>
                 </div>
                 <div className="seller-order-status">
-                  <span className={`status-badge status-${item.status}`}>{item.status}</span>
+                  <span className={`status-badge item-status-${item.status}`}>{item.status}</span>
                   {item.status === 'pending' && (
                     <button
                       className="button button-primary"

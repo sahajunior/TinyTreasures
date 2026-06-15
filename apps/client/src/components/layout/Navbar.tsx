@@ -24,7 +24,7 @@ export default function Navbar() {
     <header className="site-header">
       <div className="utility-strip">
         <span>Independent sellers · Authenticated collectibles</span>
-        <span>Est. 2024</span>
+        <span>Est. 2025</span>
       </div>
       <nav className="navbar" aria-label="Primary navigation">
         <Link className="brand" to="/" onClick={() => setMobileOpen(false)}>

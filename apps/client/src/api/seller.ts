@@ -57,6 +57,41 @@ export const uploadSellerProductImages = async (
   return data.data
 }
 
+export const replaceSellerProductImage = async (
+  id: string,
+  imageIndex: number,
+  file: File,
+): Promise<Product> => {
+  const body = new FormData()
+  body.append('image', file)
+  const { data } = await api.put<ApiResponse<Product>>(
+    `/seller/products/${id}/images/${imageIndex}`,
+    body,
+  )
+  return data.data
+}
+
+export const deleteSellerProductImage = async (
+  id: string,
+  imageIndex: number,
+): Promise<Product> => {
+  const { data } = await api.delete<ApiResponse<Product>>(
+    `/seller/products/${id}/images/${imageIndex}`,
+  )
+  return data.data
+}
+
+export const reorderSellerProductImages = async (
+  id: string,
+  images: string[],
+): Promise<Product> => {
+  const { data } = await api.patch<ApiResponse<Product>>(
+    `/seller/products/${id}/images/order`,
+    { images },
+  )
+  return data.data
+}
+
 export const getSellerOrders = async (): Promise<SellerOrder[]> => {
   const { data } = await api.get<ApiResponse<SellerOrder[]>>('/seller/orders')
   return data.data

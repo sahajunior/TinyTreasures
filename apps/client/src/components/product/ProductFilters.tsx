@@ -49,32 +49,36 @@ export default function ProductFilters({
 
       <fieldset>
         <legend>Category</legend>
-        {categories.map((category) => (
-          <label className="radio-row" key={category}>
-            <input
-              type="radio"
-              name="category"
-              checked={params.get('category') === category}
-              onChange={() => update('category', category)}
-            />
-            <span>{category}</span>
-          </label>
-        ))}
+        <div className="filter-options">
+          {categories.map((category) => (
+            <label className="radio-row" key={category}>
+              <input
+                type="radio"
+                name="category"
+                checked={params.get('category') === category}
+                onChange={() => update('category', category)}
+              />
+              <span>{category}</span>
+            </label>
+          ))}
+        </div>
       </fieldset>
 
       <fieldset>
         <legend>Condition</legend>
-        {conditions.map((condition) => (
-          <label className="radio-row" key={condition}>
-            <input
-              type="radio"
-              name="condition"
-              checked={params.get('condition') === condition}
-              onChange={() => update('condition', condition)}
-            />
-            <span>{condition}</span>
-          </label>
-        ))}
+        <div className="filter-options">
+          {conditions.map((condition) => (
+            <label className="radio-row" key={condition}>
+              <input
+                type="radio"
+                name="condition"
+                checked={params.get('condition') === condition}
+                onChange={() => update('condition', condition)}
+              />
+              <span>{condition}</span>
+            </label>
+          ))}
+        </div>
       </fieldset>
 
       <div className="price-filter">

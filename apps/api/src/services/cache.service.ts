@@ -10,7 +10,7 @@ export const cacheSet = async (
   value: unknown,
   ttlSeconds: number
 ): Promise<void> => {
-  await redis.set(key, JSON.stringify(value), { ex: ttlSeconds });
+  await redis.set(key, value, { ex: ttlSeconds });
 };
 
 export const cacheInvalidate = async (pattern: string): Promise<void> => {

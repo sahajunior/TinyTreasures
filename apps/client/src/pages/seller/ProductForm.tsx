@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ImagePlus, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  ImagePlus,
+  RefreshCw,
+  Star,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { useEffect, useMemo, useState, type DragEvent } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -7,7 +15,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import {
   createSellerProduct,
+  deleteSellerProductImage,
   getSellerProduct,
+  reorderSellerProductImages,
+  replaceSellerProductImage,
   updateSellerProduct,
   uploadSellerProductImages,
 } from '@/api/seller'
@@ -63,6 +74,8 @@ const defaults: FormValues = {
   stock: '1',
 }
 
+const MAX_PRODUCT_IMAGES = 7
+
 export default function SellerProductForm() {
   const { id } = useParams()
   const editing = Boolean(id)
@@ -107,6 +120,45 @@ export default function SellerProductForm() {
     [previews],
   )
 
+  const syncProduct = (updated: NonNullable<typeof product.data>) => {
+    queryClient.setQueryData(['seller', 'product', id], updated)
+    void queryClient.invalidateQueries({ queryKey: ['seller', 'products'] })
+  }
+
+  const uploadImages = useMutation({
+    mutationFn: (selected: File[]) => uploadSellerProductImages(id!, selected),
+    onSuccess: (updated) => {
+      syncProduct(updated)
+      toast.success('Photos added')
+    },
+    onError: (error) => toast.error(getErrorMessage(error, 'Photos could not be added')),
+  })
+
+  const replaceImage = useMutation({
+    mutationFn: ({ imageIndex, file }: { imageIndex: number; file: File }) =>
+      replaceSellerProductImage(id!, imageIndex, file),
+    onSuccess: (updated) => {
+      syncProduct(updated)
+      toast.success('Photo updated')
+    },
+    onError: (error) => toast.error(getErrorMessage(error, 'Photo could not be updated')),
+  })
+
+  const removeImage = useMutation({
+    mutationFn: (imageIndex: number) => deleteSellerProductImage(id!, imageIndex),
+    onSuccess: (updated) => {
+      syncProduct(updated)
+      toast.success('Photo deleted')
+    },
+    onError: (error) => toast.error(getErrorMessage(error, 'Photo could not be deleted')),
+  })
+
+  const reorderImages = useMutation({
+    mutationFn: (images: string[]) => reorderSellerProductImages(id!, images),
+    onSuccess: (updated) => syncProduct(updated),
+    onError: (error) => toast.error(getErrorMessage(error, 'Photos could not be reordered')),
+  })
+
   const save = useMutation({
     mutationFn: async (input: ProductInput) => {
       const saved = editing
@@ -127,10 +179,43 @@ export default function SellerProductForm() {
 
   const addFiles = (selected: File[]) => {
     const images = selected.filter((file) => file.type.startsWith('image/'))
-    const remaining = Math.max(0, 4 - (product.data?.images.length ?? 0) - files.length)
-    setFiles((current) => [...current, ...images.slice(0, remaining)])
-    if (images.length > remaining) toast.error('Maximum 4 images per listing')
+    const remaining = Math.max(
+      0,
+      MAX_PRODUCT_IMAGES - (product.data?.images.length ?? 0) - files.length,
+    )
+    const accepted = images.slice(0, remaining)
+    if (editing && accepted.length > 0) {
+      uploadImages.mutate(accepted)
+    } else {
+      setFiles((current) => [...current, ...accepted])
+    }
+    if (images.length > remaining) {
+      toast.error('Maximum: 1 cover photo and 6 additional photos')
+    }
   }
+
+  const movePendingImage = (from: number, to: number) => {
+    setFiles((current) => {
+      const next = [...current]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      return next
+    })
+  }
+
+  const moveExistingImage = (from: number, to: number) => {
+    if (!product.data) return
+    const images = [...product.data.images]
+    const [moved] = images.splice(from, 1)
+    images.splice(to, 0, moved)
+    reorderImages.mutate(images)
+  }
+
+  const photoBusy =
+    uploadImages.isPending ||
+    replaceImage.isPending ||
+    removeImage.isPending ||
+    reorderImages.isPending
 
   const dropFiles = (event: DragEvent<HTMLLabelElement>) => {
     event.preventDefault()
@@ -240,7 +325,10 @@ export default function SellerProductForm() {
 
         <aside className="seller-form-images">
           <h2>Photography</h2>
-          <p>JPG, PNG, or WebP. Up to four images, 5 MB each.</p>
+          <p>
+            First image is the cover. Replace, delete, or reorder up to six
+            additional photos. JPG, PNG, or WebP, 5 MB each.
+          </p>
           <label
             className="image-dropzone"
             onDragOver={(event) => event.preventDefault()}
@@ -254,30 +342,132 @@ export default function SellerProductForm() {
               type="file"
               accept="image/*"
               multiple
+              disabled={photoBusy}
               onChange={(event) => addFiles(Array.from(event.target.files ?? []))}
             />
           </label>
           <div className="image-preview-grid">
-            {product.data?.images.map((src) => (
-              <ProductImage
-                key={src}
-                src={src}
-                alt={product.data!.title}
-                category={product.data!.category}
-              />
+            {product.data?.images.map((src, index) => (
+              <div className="photo-preview-item" key={src}>
+                {index === 0 && <span className="cover-photo-label">Cover</span>}
+                <ProductImage
+                  src={src}
+                  alt={product.data!.title}
+                  category={product.data!.category}
+                />
+                <div className="photo-actions">
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      aria-label={`Set photo ${index + 1} as cover`}
+                      title="Set as cover"
+                      disabled={photoBusy}
+                      onClick={() => moveExistingImage(index, 0)}
+                    >
+                      <Star aria-hidden="true" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    aria-label={`Move photo ${index + 1} left`}
+                    title="Move left"
+                    disabled={photoBusy || index === 0}
+                    onClick={() => moveExistingImage(index, index - 1)}
+                  >
+                    <ArrowLeft aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Move photo ${index + 1} right`}
+                    title="Move right"
+                    disabled={photoBusy || index === product.data!.images.length - 1}
+                    onClick={() => moveExistingImage(index, index + 1)}
+                  >
+                    <ArrowRight aria-hidden="true" />
+                  </button>
+                  <label title="Replace photo">
+                    <RefreshCw aria-hidden="true" />
+                    <span className="sr-only">Replace photo {index + 1}</span>
+                    <input
+                      className="sr-only"
+                      type="file"
+                      accept="image/*"
+                      disabled={photoBusy}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0]
+                        if (file) replaceImage.mutate({ imageIndex: index, file })
+                        event.target.value = ''
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="photo-delete"
+                    aria-label={`Delete photo ${index + 1}`}
+                    title="Delete photo"
+                    disabled={photoBusy}
+                    onClick={() => {
+                      if (window.confirm('Delete this photo permanently?')) {
+                        removeImage.mutate(index)
+                      }
+                    }}
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
             ))}
             {previews.map(({ file, url }, index) => (
-              <div className="image-preview" key={`${file.name}-${file.lastModified}`}>
+              <div
+                className="image-preview photo-preview-item"
+                key={`${file.name}-${file.lastModified}`}
+              >
+                {(product.data?.images.length ?? 0) === 0 && index === 0 && (
+                  <span className="cover-photo-label">Cover</span>
+                )}
                 <img src={url} alt={`New upload ${index + 1}`} />
-                <button
-                  type="button"
-                  aria-label={`Remove ${file.name}`}
-                  onClick={() =>
-                    setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))
-                  }
-                >
-                  <X aria-hidden="true" />
-                </button>
+                <div className="photo-actions">
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      aria-label={`Set ${file.name} as cover`}
+                      title="Set as cover"
+                      onClick={() => movePendingImage(index, 0)}
+                    >
+                      <Star aria-hidden="true" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    aria-label={`Move ${file.name} left`}
+                    title="Move left"
+                    disabled={index === 0}
+                    onClick={() => movePendingImage(index, index - 1)}
+                  >
+                    <ArrowLeft aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Move ${file.name} right`}
+                    title="Move right"
+                    disabled={index === files.length - 1}
+                    onClick={() => movePendingImage(index, index + 1)}
+                  >
+                    <ArrowRight aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${file.name}`}
+                    title="Remove photo"
+                    onClick={() =>
+                      setFiles((current) =>
+                        current.filter((_, itemIndex) => itemIndex !== index),
+                      )
+                    }
+                  >
+                    <X aria-hidden="true" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

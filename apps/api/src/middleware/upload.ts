@@ -4,7 +4,7 @@ import { ApiError } from "../utils/ApiError";
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    files: 4,
+    files: 7,
     fileSize: 5 * 1024 * 1024,
   },
   fileFilter: (_req, file, callback) => {
@@ -16,4 +16,5 @@ const upload = multer({
   },
 });
 
-export const uploadProductImages = upload.array("images", 4);
+export const uploadProductImages = upload.array("images", 7);
+export const uploadProductImage = upload.single("image");
